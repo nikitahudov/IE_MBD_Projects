@@ -1,0 +1,126 @@
+# IE - Master in Business Analytics and Big Data
+Recommendation Systems
+
+Building a Collaborative Filtering Engine
+
+Author: FirstName LastName
+
+========================================================
+
+# Initialization
+
+Import libraries
+
+```{r}
+library(ggplot2)
+```
+
+Load the critics dataset.
+
+```{r}
+data <- read.csv('critics.csv')
+```
+
+# 1) Pearson correlation coefficient 
+Calculate the Pearson correlation coefficient between Victoria and Nuria
+
+**Expected correlation between Victoria and Nuria**: 0.3651484
+
+```{r fig.width=7, fig.height=6}
+films <- colnames(data)[-1]
+users <- data$User
+trans_data <- t(data[,-1])
+trans_data <- as.data.frame(trans_data)
+colnames(trans_data) <- users
+cor(trans_data$Victoria, trans_data$Nuria, use = 'complete.obs', method = 'pearson')
+```
+
+# 2) Compare two movie critics
+Using the calculated Pearson correlation in the previous section. Compare and show the movie ratings for Victoria and Nuria on a scatter plot. How is this compared with the same ratings of Maria and Nerea on a scatter plot? What about Chris and Jim? What it means?
+
+```{r}
+plot_data <- as.data.frame(cbind(films, trans_data))
+rownames(plot_data) <- NULL
+
+plot_data1 <- plot_data[, which(names(plot_data) %in% c("Victoria", "Nuria", "films")) ]
+plot_data1 <- plot_data1[complete.cases(plot_data1),]
+plot1 <- ggplot(plot_data1) + geom_point(aes(x = films, y = Victoria), colour=alpha('darkorchid4', 1)) +
+  geom_point(aes(x = films, y = Nuria), colour=alpha('deepskyblue', 1)) + 
+  labs(y = "Rating", title = "Victoria vs. Nuria") +
+  theme(axis.text.x = element_text(angle = 45))
+plot1
+
+plot_data2 <- plot_data[, which(names(plot_data) %in% c("Maria", "Nerea", "films")) ]
+plot_data2 <- plot_data2[complete.cases(plot_data2),]
+plot2 <- ggplot(plot_data2) + geom_point(aes(x = films, y = Maria), colour=alpha('darkorchid4', 1)) +
+  geom_point(aes(x = films, y = Nerea), colour=alpha('deepskyblue', 1)) + 
+  labs(y = "Rating", title = "Maria vs. Nerea") +
+  theme(axis.text.x = element_text(angle = 45))
+plot2
+
+plot_data3 <- plot_data[, which(names(plot_data) %in% c("Chris", "Jim", "films")) ]
+plot_data3 <- plot_data1[complete.cases(plot_data3),]
+plot3 <- ggplot(plot_data3) + geom_point(aes(x = films, y = Victoria), colour=alpha('darkorchid4', 1)) +
+  geom_point(aes(x = films, y = Nuria), colour=alpha('deepskyblue', 1)) + 
+  labs(y = "Rating", title = "Chris vs. Jim") +
+  theme(axis.text.x = element_text(angle = 45))
+plot3
+
+par(mfrow = c(3,1))
+plot1
+plot2
+plot3
+```
+
+# 3) Top Recommendations 
+Get the top 5 movies recommended for Victoria. by using a weighted average of every other critic's rankings.
+
+**Expected result**:
+3.7917013044215, 'The Matrix'
+3.50776533175371, 'Forrest Gump'     
+3.33118834864677, 'The Sixth Sense' 
+3.11491825315719, 'Shakespeare in Love'
+2.9124513228665, 'Blade Runner'
+
+```{ fig.width=7, fig.height=6}
+meanVic <- mean(trans_data$Victoria, na.rm = T)
+u <- 0
+meanUser <- 0
+for (u in 1:length(trans_data)) {
+  meanUser[u] <- mean(trans_data[,u], na.rm = T)
+}
+meanUser_data <- as.data.frame(cbind(meanUser, colnames(trans_data)))
+colnames(meanUser_data) <- c("MeanRating", "User")
+
+f <- 0
+us <- 0
+rating <- 0
+for (f in 1:length(trans_data)) {
+  for (us in 1:length(trans_data)) {
+  rating[f] <- meanVic + (sum((trans_data[f,us] - meanUser_data[u,1]) * simil[us,1]) / simil[us,1])
+  }
+}
+```
+
+# 4) Top similar critics
+Return the top 5 critics that are most similar to Victoria. 
+
+**Expected result**:
+0.9449112, 'Rachel'
+0.5976143, 'Ana' 
+0.5789794, 'Oriol'
+0.4925922, 'Maria'
+0.4273247, 'Carles'
+
+```{r fig.width=7, fig.height=6}
+a <- 0
+correlation <- 0
+for (a in 1:length(trans_data)) {
+  correlation[a] <- cor(trans_data$Victoria, trans_data[,a], use = 'complete.obs', method = 'pearson')
+}
+simil <- as.data.frame(cbind(correlation,colnames(trans_data)))
+colnames(simil) = c("Correlation", "User")
+simil <- simil[-15,]
+simil2 <- simil[order(simil$Correlation, decreasing = T),]
+simil2[1:5,]
+```
